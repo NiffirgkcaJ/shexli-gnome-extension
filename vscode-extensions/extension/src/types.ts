@@ -8,7 +8,7 @@ export interface ShexliConfigFile {
     pythonPath?: string;
     ruleEnable?: string[];
     ruleDisable?: string[];
-    runMode?: "auto" | "onChange" | "onSave" | "manual";
+    runMode?: "auto" | "onChange" | "onSave" | "onStartup" | "manual";
     debounceMs?: number;
     discoveryMode?: "auto" | "config" | "metadata";
 }
@@ -23,7 +23,7 @@ export interface ShexliConfig {
     pythonPath: string;
     ruleEnable: string[];
     ruleDisable: string[];
-    runMode: "auto" | "onChange" | "onSave" | "manual";
+    runMode: "auto" | "onChange" | "onSave" | "onStartup" | "manual";
     debounceMs: number;
     configPath: string | null;
     discoveryMode: "auto" | "config" | "metadata";

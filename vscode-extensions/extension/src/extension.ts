@@ -41,14 +41,9 @@ export function activate(context: vscode.ExtensionContext): void {
             return hasConfig;
         }
 
-        const hasMetadata = (await discoverPackages(config, output)).length > 0;
-
-        if (config.discoveryMode === "metadata") {
-            return hasMetadata;
-        }
-
-        // auto mode
-        return hasConfig || hasMetadata;
+        // auto/metadata mode: check if any valid packages exist in the workspace
+        const packages = await discoverPackages(config, output);
+        return hasConfig || packages.length > 0;
     }
 
     const analyzeWorkspaceCommand = vscode.commands.registerCommand(
@@ -288,9 +283,14 @@ export function activate(context: vscode.ExtensionContext): void {
     loadConfig(output, context.extensionPath).then(async (config) => {
         if (await shouldEnable(config)) {
             await refreshStatusBar(statusBar, output, context.extensionPath);
-            
-            if (config.runMode === "auto" || config.runMode === "onChange") {
-                output.appendLine("Shexli: Discovery successful, triggering initial workspace analysis...");
+
+            const isStartupEnabled =
+                config.runMode === "auto" || config.runMode === "onStartup";
+
+            if (isStartupEnabled) {
+                output.appendLine(
+                    "Shexli: Discovery successful, triggering initial workspace analysis...",
+                );
                 await analyzeWorkspacePackages(
                     config,
                     diagnostics,
@@ -302,7 +302,9 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         } else {
             statusBar.hide();
-            output.appendLine("Shexli: No GNOME extension package or config found. Extension idle.");
+            output.appendLine(
+                "Shexli: No GNOME extension package or config found. Extension idle.",
+            );
         }
     }).catch((err) => {
         output.appendLine(`Shexli: Startup analysis failed: ${String(err)}`);

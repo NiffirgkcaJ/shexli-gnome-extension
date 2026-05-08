@@ -74,11 +74,11 @@
                 "shexli.executionMode": {
                     "type": "string",
                     "enum": [
+                        "auto",
                         "binary",
-                        "python",
-                        "auto"
+                        "python"
                     ],
-                    "default": "binary",
+                    "default": "auto",
                     "description": "How to run Shexli: bundled/system binary, Python module, or automatic fallback."
                 },
                 "shexli.pythonPath": {
@@ -127,7 +127,10 @@
                         "**/.git/**",
                         "**/node_modules/**",
                         "**/dist/**",
-                        "**/build/**"
+                        "**/build/**",
+                        "**/tests/**",
+                        "**/test/**",
+                        "**/examples/**"
                     ],
                     "description": "Glob patterns to exclude from package discovery."
                 },
@@ -137,6 +140,7 @@
                         "auto",
                         "onChange",
                         "onSave",
+                        "onStartup",
                         "manual"
                     ],
                     "default": "auto",
@@ -160,7 +164,7 @@
                         "metadata"
                     ],
                     "default": "auto",
-                    "description": "Controls when Shexli activates. 'auto' (default) looks for config or metadata.json. 'config' only looks for .shexlirc/.shexli.json. 'metadata' only looks for metadata.json."
+                    "description": "Controls when Shexli activates."
                 }
             }
         }

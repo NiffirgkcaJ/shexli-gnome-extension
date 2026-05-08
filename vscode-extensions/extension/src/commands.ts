@@ -8,7 +8,12 @@ import {
     resolveWorkspaceConfigPath,
     addPackageToConfigFile,
 } from "./config";
-import { METADATA_FILE, execShexli, shouldSkipPackage } from "./runner";
+import {
+    METADATA_FILE,
+    execShexli,
+    shouldSkipPackage,
+    isExtensionRoot,
+} from "./runner";
 import {
     parseResult,
     filterFindings,
@@ -25,7 +30,7 @@ export function findPackageRoot(
     if (packages.length > 0) {
         const match = packages
             .map((entry) => path.resolve(entry))
-            .filter((entry) => fs.existsSync(path.join(entry, METADATA_FILE)))
+            .filter((entry) => isExtensionRoot(entry))
             .find(
                 (entry) =>
                     normalized === entry ||
@@ -40,8 +45,7 @@ export function findPackageRoot(
 
     let current = path.dirname(normalized);
     while (true) {
-        const candidate = path.join(current, METADATA_FILE);
-        if (fs.existsSync(candidate)) {
+        if (isExtensionRoot(current)) {
             return current;
         }
         const parent = path.dirname(current);
@@ -73,7 +77,7 @@ export async function discoverPackages(
         const missing: string[] = [];
 
         for (const entry of resolved) {
-            if (fs.existsSync(path.join(entry, METADATA_FILE))) {
+            if (isExtensionRoot(entry)) {
                 valid.push(entry);
             } else {
                 missing.push(entry);
@@ -82,14 +86,11 @@ export async function discoverPackages(
 
         if (missing.length > 0) {
             output.appendLine(
-                `Shexli: ${missing.length} explicit package(s) missing metadata.json:`,
+                `Shexli: ${missing.length} explicit package(s) invalid (missing metadata.json or extension.js):`,
             );
             for (const entry of missing) {
                 output.appendLine(`  - ${entry}`);
             }
-            void vscode.window.showWarningMessage(
-                `Shexli: ${missing.length} package(s) missing metadata.json (see Output).`,
-            );
         }
 
         output.appendLine(`Shexli: Using ${valid.length} explicit package(s).`);
@@ -113,7 +114,10 @@ export async function discoverPackages(
         const pattern = new vscode.RelativePattern(root, `**/${METADATA_FILE}`);
         const files = await vscode.workspace.findFiles(pattern, excludePattern);
         for (const file of files) {
-            packages.add(path.dirname(file.fsPath));
+            const dir = path.dirname(file.fsPath);
+            if (isExtensionRoot(dir)) {
+                packages.add(dir);
+            }
         }
     }
 

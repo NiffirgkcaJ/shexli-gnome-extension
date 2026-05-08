@@ -20,12 +20,12 @@ export async function loadConfig(
         useBundledBinary: settings.get<boolean>("useBundledBinary", true),
         executionMode: settings.get<"binary" | "python" | "auto">(
             "executionMode",
-            "binary",
+            "auto",
         ),
         pythonPath: settings.get<string>("pythonPath", "python3"),
         ruleEnable: settings.get<string[]>("ruleEnable", []),
         ruleDisable: settings.get<string[]>("ruleDisable", []),
-        runMode: settings.get<"auto" | "onChange" | "onSave" | "manual">(
+        runMode: settings.get<"auto" | "onChange" | "onSave" | "onStartup" | "manual">(
             "runMode",
             "auto",
         ),

@@ -1,11 +1,31 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
+import * as path from "path";
 import { execFile } from "child_process";
 import { ShexliConfig } from "./types";
 import { buildExcludePattern } from "./config";
 
 export const METADATA_FILE = "metadata.json";
+export const EXTENSION_JS_FILE = "extension.js";
 const notifiedExecFailures = new Set<string>();
+
+export function isExtensionRoot(dirPath: string): boolean {
+    const metadata = path.join(dirPath, METADATA_FILE);
+    const extensionJs = path.join(dirPath, EXTENSION_JS_FILE);
+
+    if (!fs.existsSync(metadata) || !fs.existsSync(extensionJs)) {
+        return false;
+    }
+
+    try {
+        const content = fs.readFileSync(extensionJs, "utf-8");
+        // Check for GNOME 45+ class signatures (Short or Namespaced)
+        const signatureRegex = /extends\s+Extension(\.Extension)?\b/;
+        return signatureRegex.test(content);
+    } catch (err) {
+        return false;
+    }
+}
 
 export function execShexli(
     config: ShexliConfig,
