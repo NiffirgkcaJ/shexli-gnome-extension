@@ -1,70 +1,141 @@
-# Shexli GNOME Extension Linter
+# Shexli GNOME Extension
 
-A Linux-only VS Code extension that runs Shexli against GNOME Shell extension packages and surfaces findings as diagnostics.
+Professional static analysis for GNOME Shell extensions, powered by the Shexli engine.
 
-## Quick Start
+This extension brings GNOME's `shexli` static analysis engine directly into the editor. It provides real-time feedback on API misuse, lifecycle management, and version compatibility to ensure high-quality, review-ready extensions.
 
-1. Place the bundled binary at `vscode-extensions/extension/resources/bin/shexli` and make it executable.
-2. Open a workspace that contains your GNOME extension packages.
-3. Run "Shexli: Pick Package to Analyze" to add a package to `.shexli.json`.
+## Features
 
-To build the bundled binary from the local shexli source, run:
+- **Deep Static Analysis:** Identifies dangerous subprocess patterns, GObject signal misuse, and direct hardware access.
+- **Lifecycle Validation:** Detects resource leaks and incorrect state management in `enable()` and `disable()`.
+- **Version Compatibility:** Flags deprecated APIs based on your extension's target GNOME Shell versions.
+- **Transitive Reachability:** Analyzes all files reachable via ES modules or legacy `Me.imports`.
+- **Intelligent Discovery:** Automatically detects GNOME extension packages by searching for `metadata.json` and validating entry point signatures.
+- **Smart Integration:** Native diagnostics with precise highlight alignment and debounced background analysis.
 
-```bash
-npm run build-binary
-```
+## Compatibility
+
+- **OS:** Linux (GJS/GNOME environment).
+- **Engine Version:** ^1.90.0
+- **Python:** 3.12+ (required for the analysis engine).
+
+## Installation
+
+The extension requires the `shexli` engine to perform analysis. By default, it uses a **bundled Linux binary** and works out of the box. You can optionally use a global Python installation (`pip install shexli`) by setting the `executionMode` to `python`.
+
+### Install from a Marketplace (Recommended)
+
+The easiest way to install is directly from the official marketplaces:
+
+- [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=niffirgkcaj.shexli-gnome-extension)
+- [Open VSX Registry](https://open-vsx.org/extension/niffirgkcaj/shexli-gnome-extension)
+
+### Install from a VSIX File
+
+1.  **Download the VSIX:** Go to the [Releases](https://github.com/NiffirgkcaJ/shexli-gnome-extension/releases) page and download the latest `.vsix` file.
+2.  **Install:** Open the Extensions view (`Ctrl+Shift+X`), click the **...** menu in the top-right corner, and select **Install from VSIX...**.
+3.  **Reload:** Restart the editor if prompted.
+
+### Install from Source (for Developers)
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/NiffirgkcaJ/shexli-gnome-extension.git
+    cd shexli-gnome-extension
+    ```
+2.  Build the bundled analyzer and package the extension:
+    ```bash
+    npm run build-binary && npm run package
+    ```
+3.  Install the generated `.vsix` file via the Explorer view.
+
+## Usage
+
+- **Open a Project:** Open any workspace containing GNOME extension source code.
+- **Automatic Discovery:** The extension will automatically detect valid packages containing a `metadata.json` and begin analysis.
+- **View Diagnostics:** Findings will appear as squiggly lines in your code and will be listed in the **Problems** tab.
+- **Status Bar:** Monitor the status bar item (bottom-left) to see the current Run Mode and the active package name.
 
 ## Configuration
 
-Create a workspace config file named `.shexli.json` at the workspace root or set the corresponding VS Code settings.
+The extension can be configured via settings (prefixed with `shexli.`) or a workspace `.shexli.json` file.
 
-When `packages` is set, the extension analyzes only those package roots and skips discovery under `roots`.
+### Available Settings
 
-Each entry in `packages` should point at a directory that contains `metadata.json`.
+| Setting            | Default    | Description                                                                     |
+| :----------------- | :--------- | :------------------------------------------------------------------------------ |
+| `binaryPath`       | `shexli`   | Path to the system `shexli` binary.                                             |
+| `useBundledBinary` | `true`     | Prefer the bundled Linux binary if available.                                   |
+| `executionMode`    | `auto`     | How to run the engine (`auto`, `binary`, or `python`).                          |
+| `pythonPath`       | `python3`  | Path to the Python executable.                                                  |
+| `ruleEnable`       | `[]`       | List of rule IDs or wildcard patterns to include.                               |
+| `ruleDisable`      | `[]`       | List of rule IDs or wildcard patterns to exclude.                               |
+| `roots`            | `[]`       | Directories to scan for GNOME extension packages.                               |
+| `packages`         | `[]`       | Explicit paths to extension package roots.                                      |
+| `exclude`          | (Standard) | Glob patterns to exclude from discovery.                                        |
+| `runMode`          | `auto`     | When to trigger analysis (`auto`, `onChange`, `onSave`, `onStartup`, `manual`). |
+| `debounceMs`       | `800`      | Delay in milliseconds for `onChange` analysis.                                  |
+| `configPath`       | `""`       | Optional path to a custom JSON config file.                                     |
+| `discoveryMode`    | `auto`     | When to activate (`auto`, `config`, or `metadata`).                             |
 
-Package roots are stored relative to the workspace root when possible.
+### Mode Matrices
 
-By default, the extension prefers a bundled Linux binary when it exists and is executable. Set `shexli.useBundledBinary` to false to use a system `shexli` instead.
+#### 1. Execution Modes
 
-Use `shexli.executionMode` to control how Shexli runs:
+| Mode     | Target                        | Requirements                    | Fallback             |
+| :------- | :---------------------------- | :------------------------------ | :------------------- |
+| `auto`   | Binary → Python **(Default)** | Hybrid                          | Falls back to Python |
+| `binary` | Standalone binary             | Bundled or system `shexli`      | None                 |
+| `python` | Python module                 | Python 3.12+ & `shexli` package | None                 |
 
-- `binary`: always run the bundled/system binary.
-- `python`: run `python -m shexli`.
-- `auto`: try the binary first, then fall back to `python -m shexli`.
+#### 2. Run Modes
 
-When using `python` or `auto`, set `shexli.pythonPath` to the Python executable that has the Shexli package installed.
+| Mode        | On Change | On Save | On Startup        | Command Only |
+| :---------- | :-------- | :------ | :---------------- | :----------- |
+| `auto`      | Yes       | Yes     | Yes **(Default)** | No           |
+| `onChange`  | Yes       | No      | No                | No           |
+| `onSave`    | No        | Yes     | No                | No           |
+| `onStartup` | No        | No      | Yes               | No           |
+| `manual`    | No        | No      | No                | Yes          |
 
-Use `npm run verify-binary` to validate that the bundled binary is present and executable before packaging the extension.
+#### 3. Discovery Modes
 
-Use `ruleEnable` and `ruleDisable` to include or exclude rule IDs. Wildcards
-are supported, for example `EGO-M-*`.
-
-Example `.shexli.json`:
-
-```json
-{
-    "roots": ["/home/you/gnome/extensions"],
-    "packages": ["/home/you/gnome/extensions/my-extension"],
-    "exclude": ["**/.git/**", "**/node_modules/**"],
-    "binaryPath": "shexli",
-    "useBundledBinary": true,
-    "executionMode": "auto",
-    "pythonPath": "python3",
-    "ruleEnable": ["EGO-M-*", "EGO-I-*", "EGO-X-001"],
-    "ruleDisable": ["EGO-P-006"],
-    "runMode": "onChange",
-    "debounceMs": 800
-}
-```
+| Mode       | Check for `.shexli.json` | Scan for `metadata.json` | Idle if no matches? |
+| :--------- | :----------------------- | :----------------------- | :------------------ |
+| `auto`     | Yes **(Default)**        | Yes                      | Yes                 |
+| `config`   | Yes                      | No                       | Yes                 |
+| `metadata` | Yes                      | Yes                      | Yes                 |
 
 ## Commands
 
-- Shexli: Analyze Workspace
-- Shexli: Analyze Package for Current File
-- Shexli: Pick Package to Analyze
-- Shexli: Rescan Workspace
-- Shexli: Set Package Root for Current File
+- **Shexli: Analyze Workspace**: Full analysis of all discovered packages.
+- **Shexli: Analyze Package for Current File**: Targeted analysis for the active file.
+- **Shexli: Pick Package to Analyze**: Select a specific package from a list.
+- **Shexli: Rescan Workspace**: Force fresh discovery and analysis.
+- **Shexli: Set Package Root for Current File**: Save the current package root to `.shexli.json`.
 
-## Notes
+## Development
 
-- The bundled binary is expected at `vscode-extensions/extension/resources/bin/shexli` in this repository layout. Packaged extensions reference the same relative `resources/bin/shexli` path inside the extension.
+To build or contribute to the extension, use the following commands:
+
+### Package Management
+
+- `npm install`: Install project dependencies.
+- `npm run package`: Build the `.vsix` package using `vsce`.
+
+### Building & Testing
+
+- `npm run compile`: Compile the TypeScript source.
+- `npm run watch`: Compile source in watch mode.
+- `npm run build-binary`: Build the standalone `shexli` binary.
+- `npm run verify-binary`: Check if the bundled binary exists and is executable.
+- `npm run test`: Run automated tests.
+
+### Code Quality
+
+- `npm run lint`: Run ESLint.
+- `npm run format`: Format code using Prettier.
+
+## License
+
+This project is licensed under the **AGPL-3.0-or-later** - see the [LICENSE](LICENSE) file for details.
