@@ -3,7 +3,7 @@
     "displayName": "Shexli GNOME Extension",
     "description": "Run Shexli static analysis for GNOME Shell extensions.",
     "license": "AGPL-3.0-or-later",
-    "version": "0.0.2",
+    "version": "0.1.0",
     "icon": "vscode-extensions/extension/resources/icon/icon.png",
     "publisher": "niffirgkcaj",
     "keywords": [
